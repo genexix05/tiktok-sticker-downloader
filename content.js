@@ -19,7 +19,9 @@
       inStickerContainer;
 
     const looksLikeCdn =
-      /tiktokcdn|ibyteimg|tiktok-dm-sticker|gi79ffmtaw|dhq7zx4c1p/i.test(img.src);
+      /tiktokcdn|ibyteimg|byteimg|tiktok-dm-sticker|gi79ffmtaw|dhq7zx4c1p/i.test(
+        img.src
+      );
 
     return looksLikeSticker && looksLikeCdn;
   }
@@ -28,8 +30,10 @@
     try {
       const path = new URL(url).pathname;
       const base = path.split("/").pop() || `sticker-${index}`;
-      const clean = (base.split("~")[0] || base).replace(/\.(awebp|webp|png|jpe?g|gif)$/i, "");
-      // awebp = WebP animado de TikTok → lo guardamos como GIF
+      const clean = (base.split("~")[0] || base).replace(
+        /\.(awebp|webp|png|jpe?g|gif)$/i,
+        ""
+      );
       const isAnimated = /\.awebp(\?|#|$)/i.test(url) || /\.awebp$/i.test(path);
       return `${clean || `sticker-${index}`}.${isAnimated ? "gif" : "webp"}`;
     } catch {
@@ -37,26 +41,123 @@
     }
   }
 
-  function downloadUrls(urls) {
-    const items = [...new Set(urls)].filter(Boolean).map((url, i) => ({
-      url,
-      filename: `tiktok-stickers/${filenameFromUrl(url, i)}`,
-    }));
+  function u8ToBase64(u8) {
+    let binary = "";
+    const chunk = 0x8000;
+    for (let i = 0; i < u8.length; i += chunk) {
+      binary += String.fromCharCode.apply(null, u8.subarray(i, i + chunk));
+    }
+    return btoa(binary);
+  }
 
-    if (!items.length) return;
+  async function readBytesFromUrl(url) {
+    const animated = /\.awebp(\?|#|$)/i.test(url);
+
+    // 1) Fetch real bytes (necesario para animación)
+    try {
+      const res = await fetch(url, {
+        credentials: "include",
+        cache: "force-cache",
+      });
+      if (res.ok) {
+        return {
+          bytes: new Uint8Array(await res.arrayBuffer()),
+          mime: res.headers.get("content-type") || "image/webp",
+          animated,
+        };
+      }
+    } catch (_) {
+      /* continue */
+    }
+
+    try {
+      const res = await fetch(url, { credentials: "omit", cache: "no-cache" });
+      if (res.ok) {
+        return {
+          bytes: new Uint8Array(await res.arrayBuffer()),
+          mime: res.headers.get("content-type") || "image/webp",
+          animated,
+        };
+      }
+    } catch (_) {
+      /* continue */
+    }
+
+    // 2) Canvas SOLO para estáticos. Nunca para awebp (perdería la animación).
+    if (animated) {
+      return { bytes: null, mime: null, animated: true };
+    }
+
+    const img = [...document.images].find(
+      (el) => (el.currentSrc || el.src) === url
+    );
+    if (img && img.naturalWidth) {
+      try {
+        const canvas = document.createElement("canvas");
+        canvas.width = img.naturalWidth;
+        canvas.height = img.naturalHeight;
+        const ctx = canvas.getContext("2d");
+        ctx.drawImage(img, 0, 0);
+        const dataUrl = canvas.toDataURL("image/png");
+        const base64 = dataUrl.split(",")[1];
+        const binary = atob(base64);
+        const u8 = new Uint8Array(binary.length);
+        for (let i = 0; i < binary.length; i++) u8[i] = binary.charCodeAt(i);
+        return { bytes: u8, mime: "image/png", animated: false };
+      } catch (_) {
+        /* tainted canvas */
+      }
+    }
+
+    return null;
+  }
+
+  async function downloadUrls(urls) {
+    const unique = [...new Set(urls)].filter(Boolean);
+    if (!unique.length) return;
+
+    flashToolbar("Preparando descarga…");
+
+    const items = [];
+    for (let i = 0; i < unique.length; i++) {
+      const url = unique[i];
+      const animated = /\.awebp(\?|#|$)/i.test(url);
+      let filename = `tiktok-stickers/${filenameFromUrl(url, i)}`;
+      const got = await readBytesFromUrl(url);
+
+      // No renombrar animados a PNG
+      if (got?.mime === "image/png" && !animated) {
+        filename = filename.replace(/\.(gif|webp)$/i, ".png");
+      }
+
+      items.push({
+        url,
+        filename,
+        mime: got?.mime,
+        animated: animated || got?.animated || false,
+        base64:
+          got?.bytes && got.mime !== "image/png"
+            ? u8ToBase64(got.bytes)
+            : got?.bytes && !animated
+              ? u8ToBase64(got.bytes)
+              : undefined,
+      });
+    }
 
     chrome.runtime.sendMessage({ type: "DOWNLOAD_STICKERS", items }, (res) => {
       if (chrome.runtime.lastError) {
-        console.warn("[TSD]", chrome.runtime.lastError.message);
+        flashToolbar(
+          chrome.runtime.lastError.message ||
+            "Error de extensión (recarga la extensión y la pestaña)"
+        );
         return;
       }
       if (res?.ok) {
-        const n = items.length;
-        const msg =
-          n === 1
-            ? "Descargando sticker…"
-            : `Descargando ${n} stickers…`;
-        flashToolbar(msg);
+        flashToolbar(
+          res.converted
+            ? `Listo: ${res.converted} GIF animado(s)`
+            : `Listo: ${res.started} descargado(s)`
+        );
       } else {
         flashToolbar(res?.error || "Error al descargar");
       }
@@ -107,7 +208,7 @@
     clearTimeout(flash._timer);
     flash._timer = setTimeout(() => {
       flash.hidden = true;
-    }, 2200);
+    }, 3500);
   }
 
   function updateToolbar() {

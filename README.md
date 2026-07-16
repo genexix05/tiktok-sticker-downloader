@@ -24,11 +24,8 @@ Extensión de Chrome para descargar stickers de los mensajes directos de TikTok 
 
 Los archivos se guardan en la carpeta de descargas, dentro de `tiktok-stickers/`.
 
-- Stickers **estáticos** → `.webp`
-- Stickers **animados** (`.awebp`) → se convierten a **`.gif`**
+- Stickers **estáticos** → `.webp` / `.png`
+- Stickers **animados** (`.awebp`) → **`.gif`** con todos los frames. Si no se pueden convertir, se guarda el **WebP animado original** (no una foto fija).
 
-## Notas
+Tras actualizar: **Recargar** la extensión en `chrome://extensions` y luego F5 en TikTok.
 
-- Detecta imágenes con `alt="sticker"`, clases `StickerImage` / `DivStickerContainer` y URLs del CDN de TikTok.
-- Tras actualizar la extensión en `chrome://extensions`, pulsa **Recargar** y recarga también la pestaña de TikTok.
-- Si TikTok cambia el DOM, puede hacer falta ajustar los selectores en `content.js`.

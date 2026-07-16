@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "TikTok Sticker Downloader",
-  "version": "1.1.0",
+  "version": "1.3.0",
   "description": "Descarga stickers de los mensajes directos de TikTok, uno a uno o en lote. Los awebp animados se convierten a GIF.",
   "permissions": ["downloads", "activeTab", "storage"],
   "host_permissions": [
@@ -9,13 +9,14 @@
     "*://*.tiktok.com/*",
     "*://*.tiktokcdn.com/*",
     "*://*.tiktokcdn-eu.com/*",
+    "*://*.tiktokcdn-us.com/*",
     "*://*.ibyteimg.com/*",
     "*://*.byteimg.com/*",
-    "*://*.tiktokcdn-us.com/*"
+    "*://*.ttlivecdn.com/*",
+    "*://*.tiktokv.com/*"
   ],
   "background": {
-    "service_worker": "background.js",
-    "type": "module"
+    "service_worker": "background.js"
   },
   "action": {
     "default_popup": "popup.html",
