@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>TikTok Sticker Downloader</title>
+    <link rel="stylesheet" href="popup.css" />
+  </head>
+  <body>
+    <main>
+      <header>
+        <h1>Sticker Downloader</h1>
+        <p>Descarga stickers de los DMs de TikTok</p>
+      </header>
+
+      <section class="stats">
+        <div>
+          <strong id="visible-count">—</strong>
+          <span>visibles</span>
+        </div>
+        <div>
+          <strong id="selected-count">—</strong>
+          <span>seleccionados</span>
+        </div>
+      </section>
+
+      <div class="actions">
+        <button id="download-selected" type="button" disabled>
+          Descargar seleccionados
+        </button>
+        <button id="download-visible" type="button" disabled>
+          Descargar todos los visibles
+        </button>
+        <button id="refresh" type="button" class="secondary">Actualizar</button>
+      </div>
+
+      <p id="status" class="status" hidden></p>
+      <p class="hint">
+        En el chat: marca stickers con el checkbox o usa el botón de descarga en cada uno.
+      </p>
+    </main>
+    <script src="popup.js"></script>
+  </body>
+</html>
